@@ -513,13 +513,13 @@ def require_admin(x_role: Optional[str] = Header(None)):
     return True
 
 @router.post("/live/start")
-def api_live_start(interval_ms: int = 10000, x_role: Optional[str] = Header(None)):
+async def api_live_start(interval_ms: int = 10000, x_role: Optional[str] = Header(None)):
     require_admin(x_role)
     start_simulation(interval_ms)
     return {"message": "Simulation started."}
 
 @router.post("/live/stop")
-def api_live_stop(x_role: Optional[str] = Header(None)):
+async def api_live_stop(x_role: Optional[str] = Header(None)):
     require_admin(x_role)
     stop_simulation()
     return {"message": "Simulation stopped."}
@@ -534,7 +534,7 @@ def api_live_update(x_role: Optional[str] = Header(None)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/live/reset")
-def api_live_reset(x_role: Optional[str] = Header(None)):
+async def api_live_reset(x_role: Optional[str] = Header(None)):
     require_admin(x_role)
     try:
         reset_dataset()
