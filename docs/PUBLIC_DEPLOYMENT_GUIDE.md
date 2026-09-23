@@ -20,7 +20,7 @@ Render will execute the included `build.sh` script, which does the following:
 
 ## 4. Start Command
 Once built, Render will start the FastAPI backend serving both the API and the React production build on the assigned port:
-`cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+`cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 
 ## 5. Health Check
 Render expects a health check to know when the service is fully running.
