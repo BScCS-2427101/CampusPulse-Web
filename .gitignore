@@ -33,5 +33,7 @@ backend/data/CampusPulse_Live_Data.xlsx
 htmlcov/
 .coverage
 
-# Logs
+# Logs and Test Artifacts
 *.log
+frontend/downloads_test/
+frontend/downloads_verification/

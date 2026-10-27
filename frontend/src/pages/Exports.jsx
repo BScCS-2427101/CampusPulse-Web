@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
-import { useOutletContext, MemoryRouter, Routes, Route, Outlet } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 
 import Dashboard from './Dashboard';
 import Practical13 from './Practical13';
@@ -10,15 +10,13 @@ import Practical15 from './Practical15';
 import DataQuality from './DataQuality';
 import Storytelling from './Storytelling';
 
-const MockRouter = ({ children, context }) => (
-  <MemoryRouter initialEntries={['/']}>
-    <Routes>
-      <Route element={<Outlet context={context} />}>
-        <Route path="/" element={children} />
-      </Route>
-    </Routes>
-  </MemoryRouter>
-);
+import { 
+  getDashboard, 
+  getPractical13, 
+  getPractical14, 
+  getPractical15, 
+  getDataQuality 
+} from '../services/api';
 
 const STORY_STAGES = [
   "Stage 1: Introduction & Dataset Scope",
@@ -32,15 +30,18 @@ const STORY_STAGES = [
 ];
 
 const Exports = () => {
-  const { globalCacheTimestamp, setGlobalCacheTimestamp } = useOutletContext();
+  const context = useOutletContext() || {};
+  const globalCacheTimestamp = context.globalCacheTimestamp;
+
   const [loadingMsg, setLoadingMsg] = useState(null);
   const [successMsg, setSuccessMsg] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   
-  const hiddenContainerRef = useRef(null);
+  const exportSurfaceRef = useRef(null);
   const [exportTarget, setExportTarget] = useState(null);
   const [storyStage, setStoryStage] = useState(0);
   const [selectedStoryStage, setSelectedStoryStage] = useState(0);
+  const [storyInitialData, setStoryInitialData] = useState(null);
 
   const getTimestampStr = () => {
     const now = new Date();
@@ -71,6 +72,29 @@ const Exports = () => {
     }, 1000);
   };
 
+  // Pre-fetch all analytical datasets to ensure Storytelling renders with 100% complete data
+  const fetchAllStoryData = async () => {
+    try {
+      const [dData, p13, p14, p15, qData] = await Promise.all([
+        getDashboard().catch(() => null),
+        getPractical13().catch(() => null),
+        getPractical14().catch(() => null),
+        getPractical15().catch(() => null),
+        getDataQuality().catch(() => null)
+      ]);
+      return {
+        dashboardData: dData,
+        p13Data: p13,
+        p14Data: p14,
+        p15Data: p15,
+        qualityData: qData
+      };
+    } catch (e) {
+      console.warn("Unable to pre-fetch some story data, fallback to live query:", e);
+      return null;
+    }
+  };
+
   // Resolves SVG CSS custom properties (var(--...)) to concrete hex colors for clean canvas rasterization
   const inlineSvgStyles = (rootElement) => {
     if (!rootElement) return;
@@ -99,24 +123,56 @@ const Exports = () => {
     });
   };
 
-  // Deterministically wait until loading spinners are gone, data is rendered, and Recharts animations settle
-  const waitForContentReady = async (container, timeoutMs = 20000) => {
+  // Deterministically verify that a generated canvas has actual rendered pixels and is not blank
+  const verifyCanvasHasContent = (canvas) => {
+    if (!canvas || canvas.width === 0 || canvas.height === 0) {
+      throw new Error("Generated canvas has invalid 0x0 dimensions.");
+    }
+    const ctx = canvas.getContext('2d');
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imgData.data;
+    
+    // Sample pixels across canvas (sample every 32 bytes = 8 pixels)
+    const r0 = data[0], g0 = data[1], b0 = data[2];
+    let nonBgPixels = 0;
+    
+    for (let i = 0; i < data.length; i += 32) {
+      const r = data[i], g = data[i + 1], b = data[i + 2];
+      if (Math.abs(r - r0) > 15 || Math.abs(g - g0) > 15 || Math.abs(b - b0) > 15) {
+        nonBgPixels++;
+        if (nonBgPixels > 150) {
+          return true; // Canvas contains substantive rendered content!
+        }
+      }
+    }
+    throw new Error("Canvas verification failed: Generated visual is uniformly blank. Aborting export.");
+  };
+
+  // Deterministically wait until loading spinners and no-data states are gone, SVGs are present, and layout settles
+  const waitForContentReady = async (surfaceElement, timeoutMs = 25000) => {
     const startTime = Date.now();
     
     while (Date.now() - startTime < timeoutMs) {
-      if (container && container.children && container.children.length > 0) {
-        const hasSpinner = container.querySelector('.loading-container, .spinner') !== null;
-        const hasError = container.querySelector('.error-container') !== null;
-        const hasContent = container.querySelector('.kpi-grid, .charts-grid, table, .recharts-surface, .story-card, .dataset-table, .card') !== null;
+      if (surfaceElement && surfaceElement.children && surfaceElement.children.length > 0) {
+        const hasSpinner = surfaceElement.querySelector('.loading-container, .spinner') !== null;
+        const hasNoData = surfaceElement.querySelector('.no-data') !== null;
+        const hasError = surfaceElement.querySelector('.error-container') !== null;
+        
+        // Check for rendered substantive elements
+        const hasContent = surfaceElement.querySelector('.kpi-grid, .charts-grid, table, .recharts-surface, .stage-content, .card') !== null;
         
         if (hasError) {
           throw new Error("Target visualization encountered an error while fetching backend data.");
         }
         
-        if (!hasSpinner && hasContent) {
-          // Allow Recharts and CSS transitions 800ms to finish rendering paths and labels
-          await new Promise(r => setTimeout(r, 800));
-          inlineSvgStyles(container);
+        if (!hasSpinner && !hasNoData && hasContent) {
+          // Await font readiness
+          if (document.fonts && document.fonts.ready) {
+            await document.fonts.ready;
+          }
+          // Allow Recharts 700ms to complete animation paths
+          await new Promise(r => setTimeout(r, 700));
+          inlineSvgStyles(surfaceElement);
           return true;
         }
       }
@@ -124,8 +180,8 @@ const Exports = () => {
     }
     
     // Check if partial content is available before giving up
-    if (container && container.querySelector('.kpi-grid, .charts-grid, table, .recharts-surface')) {
-      inlineSvgStyles(container);
+    if (surfaceElement && surfaceElement.querySelector('.kpi-grid, .charts-grid, table, .recharts-surface, .stage-content')) {
+      inlineSvgStyles(surfaceElement);
       return true;
     }
     throw new Error("Timed out waiting for visualization data and charts to finish rendering.");
@@ -134,45 +190,24 @@ const Exports = () => {
   const captureNode = async (node) => {
     inlineSvgStyles(node);
     
+    const fullHeight = Math.max(node.scrollHeight, node.offsetHeight, 800);
+    const fullWidth = 1280;
+
     const canvas = await html2canvas(node, {
       scale: 2,
       useCORS: true,
       logging: false,
       backgroundColor: '#ffffff',
-      windowWidth: 1280,
-      windowHeight: node.scrollHeight || 1200,
-      x: 0,
-      y: 0,
-      width: node.scrollWidth || 1280,
-      height: node.scrollHeight || 1200,
-      onclone: (clonedDoc, clonedNode) => {
-        // Reset cloned node to standard static layout flow so bounds are clean (0, 0)
-        clonedNode.style.position = 'static';
-        clonedNode.style.left = '0px';
-        clonedNode.style.top = '0px';
-        clonedNode.style.margin = '0px';
-        clonedNode.style.width = '1280px';
-        clonedNode.style.height = 'auto';
-        clonedNode.style.overflow = 'visible';
-
-        // Fix any remaining SVG CSS variables in cloned DOM
-        const svgs = clonedNode.querySelectorAll('svg, svg *');
-        svgs.forEach(el => {
-          ['fill', 'stroke', 'stop-color'].forEach(attr => {
-            const val = el.getAttribute(attr);
-            if (val && val.includes('var(')) {
-              if (val.includes('--primary-color')) el.setAttribute(attr, '#2E7D32');
-              else if (val.includes('--primary-light')) el.setAttribute(attr, '#4CAF50');
-              else if (val.includes('--primary-dark')) el.setAttribute(attr, '#1B5E20');
-              else if (val.includes('--text-main')) el.setAttribute(attr, '#333333');
-              else if (val.includes('--text-muted')) el.setAttribute(attr, '#757575');
-              else if (val.includes('--danger')) el.setAttribute(attr, '#D32F2F');
-              else el.setAttribute(attr, '#2E7D32');
-            }
-          });
-        });
-      }
+      scrollX: 0,
+      scrollY: 0,
+      width: fullWidth,
+      height: fullHeight,
+      windowWidth: fullWidth,
+      windowHeight: fullHeight
     });
+
+    // Validate that canvas contains real, substantive pixels
+    verifyCanvasHasContent(canvas);
     return canvas;
   };
 
@@ -180,27 +215,31 @@ const Exports = () => {
     if (loadingMsg) return;
     
     const stageSuffix = stageIndex !== null ? `_Stage${stageIndex + 1}` : '';
-    setLoadingMsg(`Rendering ${componentName}${stageSuffix} for ${format.toUpperCase()} export...`);
+    setLoadingMsg(`Initializing ${componentName}${stageSuffix} for ${format.toUpperCase()} export...`);
     setErrorMsg(null);
     setSuccessMsg(null);
     
-    if (stageIndex !== null) {
-      setStoryStage(stageIndex);
-    }
-    setExportTarget(componentName);
-
     try {
-      // Allow React component to mount
-      await new Promise(r => setTimeout(r, 400));
+      if (componentName === 'Storytelling') {
+        setLoadingMsg(`Loading data bundle for Storytelling...`);
+        const dataBundle = await fetchAllStoryData();
+        setStoryInitialData(dataBundle);
+        setStoryStage(stageIndex !== null ? stageIndex : 0);
+      }
       
-      const container = hiddenContainerRef.current;
-      if (!container) throw new Error("Export container is not available.");
+      setExportTarget(componentName);
+
+      // Allow React component to mount inside export surface
+      await new Promise(r => setTimeout(r, 300));
       
-      setLoadingMsg(`Loading data and rendering charts for ${componentName}${stageSuffix}...`);
-      await waitForContentReady(container);
+      const surface = exportSurfaceRef.current;
+      if (!surface) throw new Error("Export canvas surface is not available.");
+      
+      setLoadingMsg(`Rendering charts and visuals for ${componentName}${stageSuffix}...`);
+      await waitForContentReady(surface);
 
       setLoadingMsg(`Capturing high-resolution visual...`);
-      const canvas = await captureNode(container);
+      const canvas = await captureNode(surface);
       
       const ts = getTimestampStr();
       const filename = `CampusPulse_${componentName}${stageSuffix}_${ts}`;
@@ -241,21 +280,29 @@ const Exports = () => {
     if (loadingMsg) return;
     setErrorMsg(null);
     setSuccessMsg(null);
-    setExportTarget('Storytelling');
 
     try {
+      setLoadingMsg(`Pre-fetching all analytical datasets for 8-stage export...`);
+      const dataBundle = await fetchAllStoryData();
+      setStoryInitialData(dataBundle);
+      setExportTarget('Storytelling');
+
+      // Allow initial render
+      await new Promise(r => setTimeout(r, 400));
+      const surface = exportSurfaceRef.current;
+      if (!surface) throw new Error("Export canvas surface is not available.");
+
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 850] });
-      const container = hiddenContainerRef.current;
 
       for (let s = 0; s < 8; s++) {
         setLoadingMsg(`Capturing Storytelling Stage ${s + 1} of 8 (${STORY_STAGES[s]})...`);
         setStoryStage(s);
         
-        // Allow stage re-render
+        // Wait for stage re-render and chart layout
         await new Promise(r => setTimeout(r, 500));
-        await waitForContentReady(container, 15000);
+        await waitForContentReady(surface, 15000);
         
-        const canvas = await captureNode(container);
+        const canvas = await captureNode(surface);
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
         
         if (s > 0) pdf.addPage([1280, 850], 'landscape');
@@ -287,25 +334,15 @@ const Exports = () => {
   };
 
   const renderExportTarget = () => {
-    if (!exportTarget) return null;
-    const context = { globalCacheTimestamp, setGlobalCacheTimestamp };
-    
-    let child = null;
     switch (exportTarget) {
-      case 'Dashboard': child = <Dashboard />; break;
-      case 'Practical13': child = <Practical13 />; break;
-      case 'Practical14': child = <Practical14 />; break;
-      case 'Practical15': child = <Practical15 />; break;
-      case 'DataQuality': child = <DataQuality />; break;
-      case 'Storytelling': child = <Storytelling forceStage={storyStage} />; break;
+      case 'Dashboard': return <Dashboard />;
+      case 'Practical13': return <Practical13 />;
+      case 'Practical14': return <Practical14 />;
+      case 'Practical15': return <Practical15 />;
+      case 'DataQuality': return <DataQuality />;
+      case 'Storytelling': return <Storytelling forceStage={storyStage} initialData={storyInitialData} />;
       default: return null;
     }
-
-    return (
-      <MockRouter context={context}>
-        {child}
-      </MockRouter>
-    );
   };
 
   return (
@@ -641,34 +678,107 @@ const Exports = () => {
 
       </div>
 
-      {/* Robust offscreen rendering container positioned out-of-viewport with positive coordinates and full natural height */}
-      <div 
-        style={{ 
-          position: 'fixed', 
-          left: '200vw', 
-          top: '0px', 
-          width: '1280px', 
-          height: 'auto', 
-          minHeight: '800px', 
-          overflow: 'visible', 
-          backgroundColor: '#ffffff', 
-          zIndex: -9999, 
-          pointerEvents: 'none' 
-        }}
-      >
+      {/* Dedicated Export Studio Rendering Stage (Visible In-Flow Modal with 1280px explicit dimensions) */}
+      {exportTarget && (
         <div 
-          ref={hiddenContainerRef} 
-          style={{ 
-            width: '1280px', 
-            backgroundColor: '#ffffff', 
-            color: '#333333', 
-            padding: '24px', 
-            boxSizing: 'border-box' 
+          id="campuspulse-export-modal"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            backdropFilter: 'blur(8px)',
+            zIndex: 99999,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            padding: '30px 20px',
+            overflowY: 'auto',
+            boxSizing: 'border-box'
           }}
         >
-          {renderExportTarget()}
+          {/* Floating HUD status bar */}
+          <div style={{
+            backgroundColor: '#1E293B',
+            color: '#ffffff',
+            padding: '12px 28px',
+            borderRadius: '30px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            fontWeight: '600',
+            fontSize: '0.95rem'
+          }}>
+            <div className="spinner" style={{ width: '18px', height: '18px', borderWidth: '3px', borderTopColor: '#4CAF50' }}></div>
+            <span>{loadingMsg || 'Rendering High-Resolution Visualization...'}</span>
+          </div>
+
+          {/* The Capture Surface: Rendered with explicit 1280px width, crisp white background, and full layout */}
+          <div 
+            id="campuspulse-export-surface"
+            ref={exportSurfaceRef}
+            style={{
+              width: '1280px',
+              minHeight: '800px',
+              height: 'auto',
+              backgroundColor: '#ffffff',
+              color: '#212121',
+              borderRadius: '12px',
+              padding: '36px',
+              boxSizing: 'border-box',
+              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
+              position: 'relative'
+            }}
+          >
+            {/* Formal Academic Export Header */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              borderBottom: '3px solid #2E7D32', 
+              paddingBottom: '16px', 
+              marginBottom: '28px' 
+            }}>
+              <div>
+                <div style={{ fontSize: '1.6rem', fontWeight: '800', color: '#1B5E20', letterSpacing: '-0.5px' }}>
+                  CampusPulse Academic Analytics System
+                </div>
+                <div style={{ fontSize: '0.95rem', color: '#555555', marginTop: '4px', fontWeight: '500' }}>
+                  Capstone Project · Lead Developer: <strong>RAJDEEP M PARAB</strong> (Roll: <strong>T101</strong>)
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: '0.85rem', color: '#666666', lineHeight: '1.4' }}>
+                <div><span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#2E7D32', marginRight: '6px' }}></span><strong>Status:</strong> Live Simulation Snapshot</div>
+                <div><strong>Timestamp:</strong> {new Date().toLocaleString()}</div>
+              </div>
+            </div>
+
+            {/* Target Content */}
+            <div id="campuspulse-export-content" style={{ width: '100%' }}>
+              {renderExportTarget()}
+            </div>
+
+            {/* Formal Academic Export Footer */}
+            <div style={{ 
+              marginTop: '36px', 
+              paddingTop: '16px', 
+              borderTop: '1px solid #E0E0E0', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              fontSize: '0.8rem', 
+              color: '#888888' 
+            }}>
+              <div>CampusPulse Academic Analytics & Storytelling Platform · Certified Verification Copy</div>
+              <div>All analytics generated from authentic institutional academic datasets</div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

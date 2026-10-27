@@ -53,7 +53,7 @@ const StatusBadge = ({ status }) => {
 };
 
 const DataQuality = () => {
-  const { globalCacheTimestamp } = useOutletContext();
+  const { globalCacheTimestamp } = useOutletContext() || {};
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

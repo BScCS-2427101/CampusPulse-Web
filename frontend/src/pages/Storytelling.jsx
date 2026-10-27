@@ -23,7 +23,7 @@ const STAGES = [
   { id: 7, title: "8. Evidence-Supported Conclusions & Actions", subtitle: "Data-backed findings, quality audit highlights, and strategic recommendations" }
 ];
 
-const Storytelling = ({ forceStage = null }) => {
+const Storytelling = ({ forceStage = null, initialData = null }) => {
   const context = useOutletContext();
   const globalCacheTimestamp = context?.globalCacheTimestamp;
 
@@ -31,13 +31,13 @@ const Storytelling = ({ forceStage = null }) => {
   const [presentationMode, setPresentationMode] = useState(false);
 
   // Modular state so failure of one does not break the entire experience
-  const [dashboardData, setDashboardData] = useState(null);
-  const [p13Data, setP13Data] = useState(null);
-  const [p14Data, setP14Data] = useState(null);
-  const [p15Data, setP15Data] = useState(null);
-  const [qualityData, setQualityData] = useState(null);
+  const [dashboardData, setDashboardData] = useState(initialData?.dashboardData || null);
+  const [p13Data, setP13Data] = useState(initialData?.p13Data || null);
+  const [p14Data, setP14Data] = useState(initialData?.p14Data || null);
+  const [p15Data, setP15Data] = useState(initialData?.p15Data || null);
+  const [qualityData, setQualityData] = useState(initialData?.qualityData || null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
@@ -46,7 +46,22 @@ const Storytelling = ({ forceStage = null }) => {
     }
   }, [forceStage]);
 
+  useEffect(() => {
+    if (initialData) {
+      if (initialData.dashboardData) setDashboardData(initialData.dashboardData);
+      if (initialData.p13Data) setP13Data(initialData.p13Data);
+      if (initialData.p14Data) setP14Data(initialData.p14Data);
+      if (initialData.p15Data) setP15Data(initialData.p15Data);
+      if (initialData.qualityData) setQualityData(initialData.qualityData);
+      setLoading(false);
+    }
+  }, [initialData]);
+
   const loadStoryData = useCallback(async () => {
+    if (initialData) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setLoadError(null);
@@ -183,7 +198,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="program_name" tick={{ fontSize: 10 }} interval={0} angle={-35} textAnchor="end" />
                   <YAxis domain={[0, 100]} />
                   <RechartsTooltip />
-                  <Bar dataKey="assessment_score" name="Avg Score" fill="#2E7D32" radius={[4, 4, 0, 0]} />
+                  <Bar isAnimationActive={false} dataKey="assessment_score" name="Avg Score" fill="#2E7D32" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading program performance...</div>}
@@ -197,7 +212,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="grade" />
                   <YAxis />
                   <RechartsTooltip />
-                  <Bar dataKey="count" name="Student Count" fill="#757575" radius={[4, 4, 0, 0]} />
+                  <Bar isAnimationActive={false} dataKey="count" name="Student Count" fill="#757575" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading grade distribution...</div>}
@@ -229,7 +244,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis type="number" dataKey="attendance_percentage" name="Attendance %" domain={[0, 100]} />
                   <YAxis type="number" dataKey="assessment_score" name="Assessment Score" domain={[0, 100]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter data={attScoreData} fill="#2E7D32" fillOpacity={0.65} />
+                  <Scatter isAnimationActive={false} data={attScoreData} fill="#2E7D32" fillOpacity={0.65} />
                 </ScatterChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading attendance scatter...</div>}
@@ -243,7 +258,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis type="number" dataKey="study_hours" name="Total Study Hours" />
                   <YAxis type="number" dataKey="assessment_score" name="Assessment Score" domain={[0, 100]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter data={studyHoursData} fill="#1976D2" fillOpacity={0.65} />
+                  <Scatter isAnimationActive={false} data={studyHoursData} fill="#1976D2" fillOpacity={0.65} />
                 </ScatterChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading study hours scatter...</div>}
@@ -275,7 +290,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="risk_level" />
                   <YAxis />
                   <RechartsTooltip />
-                  <Bar dataKey="count" name="Students">
+                  <Bar isAnimationActive={false} dataKey="count" name="Students">
                     {riskDist.map((entry, idx) => (
                       <Cell key={`cell-${idx}`} fill={entry.risk_level === 'High' ? '#D32F2F' : entry.risk_level === 'Medium' ? '#FF8F00' : '#2E7D32'} />
                     ))}
@@ -293,7 +308,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="academic_risk_level" />
                   <YAxis domain={[0, 100]} />
                   <RechartsTooltip />
-                  <Bar dataKey="engagement_score" name="Avg Engagement Score" fill="#757575" radius={[4, 4, 0, 0]} />
+                  <Bar isAnimationActive={false} dataKey="engagement_score" name="Avg Engagement Score" fill="#757575" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading engagement metrics...</div>}
@@ -325,7 +340,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="residency" />
                   <YAxis />
                   <RechartsTooltip />
-                  <Bar dataKey="count" name="Students" fill="#1976D2" radius={[4, 4, 0, 0]} />
+                  <Bar isAnimationActive={false} dataKey="count" name="Students" fill="#1976D2" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading residency breakdown...</div>}
@@ -339,7 +354,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="scholarship" tick={{ fontSize: 11 }} interval={0} angle={-20} textAnchor="end" />
                   <YAxis />
                   <RechartsTooltip />
-                  <Bar dataKey="count" name="Students">
+                  <Bar isAnimationActive={false} dataKey="count" name="Students">
                     {scholData.map((entry, idx) => (
                       <Cell key={`cell-${idx}`} fill={entry.scholarship === 'Not Specified' ? '#FF8F00' : '#2E7D32'} />
                     ))}
@@ -375,7 +390,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="count" name="Enrollments" stroke="#2E7D32" strokeWidth={2.5} dot={{ r: 4 }} />
+                  <Line isAnimationActive={false} type="linear" dataKey="count" name="Enrollments" stroke="#2E7D32" strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading historical enrollments...</div>}
@@ -389,7 +404,7 @@ const Storytelling = ({ forceStage = null }) => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis domain={[0, 100]} />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="pass_percent" name="Pass %" stroke="#FF8F00" strokeWidth={2.5} dot={{ r: 4 }} />
+                  <Line isAnimationActive={false} type="linear" dataKey="pass_percent" name="Pass %" stroke="#FF8F00" strokeWidth={2.5} dot={{ r: 4 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Loading pass percentage trend...</div>}
@@ -427,8 +442,8 @@ const Storytelling = ({ forceStage = null }) => {
                 <YAxis />
                 <RechartsTooltip />
                 <Legend verticalAlign="top" height={36} />
-                <Line type="linear" dataKey="historical" name="Observed Historical Enrollments" stroke="#2E7D32" strokeWidth={3} dot={{ r: 5 }} connectNulls />
-                <Line type="linear" dataKey="forecast" name="Projected Enrollment Horizon" stroke="#FF8F00" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 5, fill: '#FF8F00' }} connectNulls />
+                <Line isAnimationActive={false} type="linear" dataKey="historical" name="Observed Historical Enrollments" stroke="#2E7D32" strokeWidth={3} dot={{ r: 5 }} connectNulls />
+                <Line isAnimationActive={false} type="linear" dataKey="forecast" name="Projected Enrollment Horizon" stroke="#FF8F00" strokeWidth={3} strokeDasharray="5 5" dot={{ r: 5, fill: '#FF8F00' }} connectNulls />
               </LineChart>
             </ResponsiveContainer>
           ) : <div className="no-data">Insufficient historical periods for forecast projection.</div>}

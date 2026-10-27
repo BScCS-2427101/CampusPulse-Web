@@ -10,7 +10,7 @@ import {
 } from 'recharts';
 
 const Dashboard = () => {
-  const { globalCacheTimestamp } = useOutletContext();
+  const { globalCacheTimestamp } = useOutletContext() || {};
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +74,7 @@ const Dashboard = () => {
                 <XAxis dataKey="program_name" tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
                 <YAxis />
                 <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="avg_assessment_score" fill="#2E7D32" radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="avg_assessment_score" fill="#2E7D32" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -90,7 +90,7 @@ const Dashboard = () => {
                 <XAxis type="number" dataKey="attendance_percentage" name="Attendance %" domain={[0, 100]} />
                 <YAxis type="number" dataKey="assessment_score" name="Score" domain={[0, 100]} />
                 <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                <Scatter data={charts.attendance_vs_score} fill="#4CAF50" fillOpacity={0.6} />
+                <Scatter isAnimationActive={false} data={charts.attendance_vs_score} fill="#4CAF50" fillOpacity={0.6} />
               </ScatterChart>
             </ResponsiveContainer>
           ) : (
@@ -106,7 +106,7 @@ const Dashboard = () => {
                 <XAxis dataKey="grade" />
                 <YAxis />
                 <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                <Bar dataKey="count" fill="#666666" radius={[4, 4, 0, 0]} />
+                <Bar isAnimationActive={false} dataKey="count" fill="#666666" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           ) : (
@@ -122,7 +122,7 @@ const Dashboard = () => {
                 <XAxis dataKey="period" tick={{ fontSize: 12 }} interval={0} angle={-45} textAnchor="end" height={60} />
                 <YAxis />
                 <RechartsTooltip />
-                <Line type="monotone" dataKey="enrollment_count" stroke="#2E7D32" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                <Line isAnimationActive={false} type="monotone" dataKey="enrollment_count" stroke="#2E7D32" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
            ) : (
