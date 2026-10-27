@@ -183,7 +183,7 @@ const Practical13 = () => {
                   <XAxis dataKey="program_name" tick={{ fontSize: 11 }} interval={0} angle={-45} textAnchor="end" />
                   <YAxis />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="assessment_score" name="Avg Score" fill="var(--primary-color)" />
+                  <Bar dataKey="assessment_score" name="Avg Score" fill="#2E7D32" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -198,7 +198,7 @@ const Practical13 = () => {
                   <XAxis dataKey="course_name" tick={{ fontSize: 11 }} interval={0} angle={-45} textAnchor="end" />
                   <YAxis domain={[0, 100]} />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="pass_percentage" name="Pass %" fill="var(--primary-light)" />
+                  <Bar dataKey="pass_percentage" name="Pass %" fill="#4CAF50" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -213,7 +213,7 @@ const Practical13 = () => {
                   <XAxis dataKey="period" tick={{ fontSize: 11 }} interval={0} angle={-45} textAnchor="end" />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="monotone" dataKey="assessment_score" name="Avg Score" stroke="var(--primary-dark)" strokeWidth={3} />
+                  <Line type="monotone" dataKey="assessment_score" name="Avg Score" stroke="#1B5E20" strokeWidth={3} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Insufficient periods for trend</div>}
@@ -228,7 +228,7 @@ const Practical13 = () => {
                   <XAxis dataKey="program_name" tick={{ fontSize: 11 }} interval={0} angle={-45} textAnchor="end" />
                   <YAxis domain={[0, 100]} />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="attendance_percentage" name="Attendance %" fill="var(--primary-color)" />
+                  <Bar dataKey="attendance_percentage" name="Attendance %" fill="#2E7D32" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -243,7 +243,7 @@ const Practical13 = () => {
                   <XAxis type="number" dataKey="attendance_percentage" name="Attendance %" domain={[0, 100]} />
                   <YAxis type="number" dataKey="assessment_score" name="Score" domain={[0, 100]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter data={charts.attendance_vs_score} fill="var(--primary-color)" fillOpacity={0.6} />
+                  <Scatter data={charts.attendance_vs_score} fill="#2E7D32" fillOpacity={0.6} />
                 </ScatterChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -258,7 +258,7 @@ const Practical13 = () => {
                   <XAxis type="number" dataKey="study_hours" name="Study Hours" />
                   <YAxis type="number" dataKey="assessment_score" name="Score" domain={[0, 100]} />
                   <RechartsTooltip cursor={{ strokeDasharray: '3 3' }} />
-                  <Scatter data={charts.study_hours_vs_score} fill="var(--primary-light)" fillOpacity={0.6} />
+                  <Scatter data={charts.study_hours_vs_score} fill="#4CAF50" fillOpacity={0.6} />
                 </ScatterChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -278,7 +278,7 @@ const Practical13 = () => {
                   <XAxis dataKey="grade" />
                   <YAxis />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="count" name="Count" fill="var(--text-muted)" />
+                  <Bar dataKey="count" name="Count" fill="#757575" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -294,8 +294,8 @@ const Practical13 = () => {
                   <YAxis />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
                   <Legend verticalAlign="top" height={36} />
-                  <Bar dataKey="credits_attempted" name="Attempted" fill="var(--text-muted)" />
-                  <Bar dataKey="credits_earned" name="Earned" fill="var(--primary-color)" />
+                  <Bar dataKey="credits_attempted" name="Attempted" fill="#757575" />
+                  <Bar dataKey="credits_earned" name="Earned" fill="#2E7D32" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}

@@ -118,6 +118,38 @@ def test_data_quality():
     assert "referential_integrity" in data
     assert "anomalies" in data
     assert "overall_status" in data
+    assert "severity_summary" in data
+
+    # Verify overall status follows documented severity rules (29 credit anomalies -> Issue)
+    assert data["overall_status"] == "Issue"
+
+    summary = data["severity_summary"]
+    assert summary["mandatory_missing"] == 0
+    assert summary["optional_missing"] == 59
+    assert summary["duplicate_ids"] == 0
+    assert summary["integrity_orphans"] == 0
+    assert summary["business_rule_anomalies"] == 29
+
+    # Verify scholarship status is treated as Optional Warning, not mandatory error
+    schol_items = [m for m in data["missing_values"] if m["sheet"] == "Students" and m["column"] == "scholarship_status"]
+    assert len(schol_items) == 1
+    assert schol_items[0]["count"] == 52
+    assert schol_items[0]["requirement_type"] == "Optional"
+    assert schol_items[0]["status"] == "Warning"
+
+    # Verify prerequisite courses are treated as Conditionally Required Warning for introductory courses
+    prereq_items = [m for m in data["missing_values"] if m["sheet"] == "Courses" and m["column"] == "prerequisite_course"]
+    assert len(prereq_items) == 1
+    assert prereq_items[0]["count"] == 7
+    assert prereq_items[0]["requirement_type"] == "Conditionally Required"
+    assert prereq_items[0]["status"] == "Warning"
+
+    # Verify the 29 credit anomalies are flagged with proper rule name and Issue status
+    credit_anomalies = [a for a in data["anomalies"] if a["sheet"] == "Enrollments" and a["field"] == "credits_earned"]
+    assert len(credit_anomalies) == 1
+    assert credit_anomalies[0]["count"] == 29
+    assert credit_anomalies[0]["rule_name"] == "Credits Earned <= Credits Attempted"
+    assert credit_anomalies[0]["status"] == "Issue"
 
 def test_export_dataset_xlsx():
     response = client.get("/api/exports/dataset?format=xlsx")

@@ -135,7 +135,7 @@ const Practical15 = () => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="count" name="Number of Enrollments" stroke="var(--primary-color)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="linear" dataKey="count" name="Number of Enrollments" stroke="#2E7D32" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Insufficient historical periods.</div>}
@@ -150,7 +150,7 @@ const Practical15 = () => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="score" name="Avg Score" stroke="var(--primary-color)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="linear" dataKey="score" name="Avg Score" stroke="#2E7D32" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Insufficient historical periods.</div>}
@@ -165,7 +165,7 @@ const Practical15 = () => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="pass_percent" name="Pass %" stroke="var(--primary-color)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="linear" dataKey="pass_percent" name="Pass %" stroke="#2E7D32" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Insufficient historical periods.</div>}
@@ -180,7 +180,7 @@ const Practical15 = () => {
                   <XAxis dataKey="period" angle={-30} textAnchor="end" tick={{ fontSize: 10 }} />
                   <YAxis />
                   <RechartsTooltip />
-                  <Line type="linear" dataKey="attendance" name="Avg Attendance %" stroke="var(--text-muted)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                  <Line type="linear" dataKey="attendance" name="Avg Attendance %" stroke="#757575" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : <div className="no-data">Insufficient historical periods.</div>}
@@ -210,7 +210,7 @@ const Practical15 = () => {
                   <XAxis dataKey="program" angle={-30} textAnchor="end" tick={{ fontSize: 8 }} interval={0} />
                   <YAxis />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="count" name="Enrollments" fill="var(--primary-color)" />
+                  <Bar dataKey="count" name="Enrollments" fill="#2E7D32" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -225,7 +225,7 @@ const Practical15 = () => {
                   <XAxis type="number" />
                   <YAxis type="category" dataKey="course" tick={{ fontSize: 8 }} width={120} />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="count" name="Enrollments" fill="var(--text-muted)" />
+                  <Bar dataKey="count" name="Enrollments" fill="#757575" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -240,7 +240,7 @@ const Practical15 = () => {
                   <XAxis dataKey="month" angle={-45} textAnchor="end" tick={{ fontSize: 10 }} interval={0} />
                   <YAxis />
                   <RechartsTooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="count" name="Total Enrollments" fill="var(--primary-color)" />
+                  <Bar dataKey="count" name="Total Enrollments" fill="#2E7D32" />
                 </BarChart>
               </ResponsiveContainer>
             ) : <div className="no-data">No Data</div>}
@@ -260,7 +260,7 @@ const Practical15 = () => {
                     <YAxis />
                     <RechartsTooltip />
                     <Legend verticalAlign="top" height={36}/>
-                    <Line type="linear" dataKey="historical" name="Historical" stroke="var(--primary-color)" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls={true} />
+                    <Line type="linear" dataKey="historical" name="Historical" stroke="#2E7D32" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} connectNulls={true} />
                     <Line type="linear" dataKey="forecast" name="Forecast" stroke="#FF8F00" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: '#FF8F00' }} connectNulls={true} />
                   </LineChart>
                 </ResponsiveContainer>
