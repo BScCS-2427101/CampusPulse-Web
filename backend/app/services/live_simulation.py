@@ -42,79 +42,87 @@ def _get_orig_path():
     return loader.original_file
 
 def perform_one_update():
-    file_path = _get_live_path()
-    if not os.path.exists(file_path):
-        raise Exception("Live dataset not found.")
+    from app.services.data_loader import DataLoader
+    with DataLoader._lock:
+        file_path = _get_live_path()
+        if not os.path.exists(file_path):
+            raise Exception("Live dataset not found.")
+            
+        wb = openpyxl.load_workbook(file_path)
         
-    wb = openpyxl.load_workbook(file_path)
-    
-    targets = [
-        ("Enrollments", ["assessment_score", "attendance_percentage", "assignment_completion_rate", "exam_attempts", "faculty_feedback_score"]),
-        ("Learning_Activity", ["study_hours", "library_visits", "lms_logins", "video_minutes", "assignment_submissions", "quiz_attempts", "engagement_score"])
-    ]
-    
-    sheet_name, fields = random.choice(targets)
-    if sheet_name not in wb.sheetnames:
-        return None
+        targets = [
+            ("Enrollments", ["assessment_score", "attendance_percentage", "assignment_completion_rate", "exam_attempts", "faculty_feedback_score"]),
+            ("Learning_Activity", ["study_hours", "library_visits", "lms_logins", "video_minutes", "assignment_submissions", "quiz_attempts", "engagement_score"])
+        ]
         
-    sheet = wb[sheet_name]
-    if sheet.max_row <= 1:
-        return None
+        sheet_name, fields = random.choice(targets)
+        if sheet_name not in wb.sheetnames:
+            return None
+            
+        sheet = wb[sheet_name]
+        if sheet.max_row <= 1:
+            return None
+            
+        headers = [cell.value for cell in sheet[1]]
         
-    headers = [cell.value for cell in sheet[1]]
-    
-    row_idx = random.randint(2, sheet.max_row)
-    field_name = random.choice(fields)
-    
-    if field_name not in headers:
-        return None
+        row_idx = random.randint(2, sheet.max_row)
+        field_name = random.choice(fields)
         
-    col_idx = headers.index(field_name) + 1
-    id_col_idx = 1 # Assuming ID is first column
-    
-    old_value = sheet.cell(row=row_idx, column=col_idx).value
-    record_id = sheet.cell(row=row_idx, column=id_col_idx).value
-    
-    if old_value is None: old_value = 0
-    
-    # Bound and compute new value safely
-    new_value = old_value
-    if field_name in ["assessment_score", "attendance_percentage", "assignment_completion_rate"]:
-        new_value = max(0, min(100, float(old_value) + random.randint(-5, 5)))
-    elif field_name == "faculty_feedback_score":
-        new_value = max(0.0, min(10.0, float(old_value) + random.uniform(-0.5, 0.5)))
-        new_value = round(new_value, 1)
-    else:
-        # Count based
-        new_value = max(0, int(old_value) + random.randint(-2, 3))
+        if field_name not in headers:
+            return None
+            
+        col_idx = headers.index(field_name) + 1
+        id_col_idx = 1 # Assuming ID is first column
         
-    sheet.cell(row=row_idx, column=col_idx, value=new_value)
-    
-    wb.save(file_path)
-    wb.close()
-    
-    # Invalidate cache and reload
-    cache.invalidate()
-    cache.get_data() # Force rebuild
-    
-    state.update_count += 1
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    state.last_update = timestamp
-    
-    log_entry = LogEntry(
-        timestamp=timestamp,
-        dataset=sheet_name,
-        record_id=str(record_id),
-        field_changed=field_name,
-        old_value=str(old_value),
-        new_value=str(new_value)
-    )
-    
-    state.log_entries.insert(0, log_entry)
-    if len(state.log_entries) > 50:
-        state.log_entries.pop()
+        old_value = sheet.cell(row=row_idx, column=col_idx).value
+        record_id = sheet.cell(row=row_idx, column=id_col_idx).value
         
-    return log_entry
+        if old_value is None: old_value = 0
+        
+        # Bound and compute new value safely within authorized valid ranges
+        new_value = old_value
+        if field_name in ["assessment_score", "attendance_percentage", "assignment_completion_rate"]:
+            new_value = max(0.0, min(100.0, round(float(old_value) + random.randint(-5, 5), 1)))
+        elif field_name == "faculty_feedback_score":
+            new_value = max(0.0, min(10.0, round(float(old_value) + random.uniform(-0.5, 0.5), 1)))
+        elif field_name == "study_hours":
+            new_value = max(0.0, min(24.0, round(float(old_value) + random.uniform(-1.0, 1.0), 1)))
+        elif field_name == "engagement_score":
+            new_value = max(0.0, min(100.0, round(float(old_value) + random.uniform(-3.0, 3.0), 1)))
+        else:
+            # Count based
+            new_value = max(0, int(old_value) + random.randint(-2, 3))
+            
+        sheet.cell(row=row_idx, column=col_idx, value=new_value)
+        
+        # Atomic file write
+        temp_file = file_path + ".tmp"
+        wb.save(temp_file)
+        wb.close()
+        os.replace(temp_file, file_path)
+        
+        # Invalidate cache and reload
+        cache.invalidate()
+        cache.get_data() # Force rebuild
+        
+        state.update_count += 1
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        state.last_update = timestamp
+        
+        log_entry = LogEntry(
+            timestamp=timestamp,
+            dataset=sheet_name,
+            record_id=str(record_id),
+            field_changed=field_name,
+            old_value=str(old_value),
+            new_value=str(new_value)
+        )
+        
+        state.log_entries.insert(0, log_entry)
+        if len(state.log_entries) > 50:
+            state.log_entries.pop()
+            
+        return log_entry
 
 async def simulation_loop():
     while state.is_running:

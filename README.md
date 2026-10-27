@@ -1,19 +1,27 @@
-# CampusPulse Web - Presentation Edition
+# CampusPulse — Live Academic Analytics, Visualization & Storytelling System
 
-## 1. Project Title & Purpose
-**CampusPulse Web** is a comprehensive educational data analytics platform designed for academic demonstration. The purpose of this project is to provide a modern, web-based presentation interface that mirrors the analytical capabilities of the standalone desktop CampusPulse application, equipped with a dynamic Live Simulation layer for interactive demonstrations.
+**Project Developer:** RAJDEEP M PARAB  
+**Roll Number:** T101  
+**Edition:** Web & Cloud Deployment Edition
 
-## 2. Main Features
-- **Interactive Dashboards**: Deep insights spanning Academic Performance (Practical 13), Student Risk (Practical 14), and Historical Trends/Forecasting (Practical 15).
-- **Live Data Simulation**: Real-time administrative controls to mimic live university database updates and watch the React UI dynamically respond.
-- **Storytelling Mode**: An 8-stage guided academic presentation for seamless projector demonstrations.
-- **Data Quality Module**: Real-time integrity validation against the live simulated dataset.
-- **Export Center**: Securely extract currently-filtered metrics to PNG, PDF, CSV (ZIP), and XLSX formats.
+## 1. Project Overview & Identity
+**CampusPulse** is an academic capstone analytics, visualization and storytelling system developed by **RAJDEEP M PARAB (Roll No: T101)**. It provides deep analytical insights across student academic achievement, attendance patterns, learning behaviors, demographic risk segmentation, longitudinal trends, and forward-looking enrollment estimations, coupled with an active Live Data Simulation engine.
+
+## 2. Core Capabilities
+- **Executive Dashboard**: High-level institutional KPIs, program performance, attendance correlations, and enrollment distributions.
+- **Practical 13 (Academic Performance)**: 9 comprehensive charts including course pass rates, program averages, assessment trends, attendance scatter, study hours correlation, course-semester heatmaps, grade distributions, and attempted vs earned credits.
+- **Practical 14 (Student Segmentation & Behaviour)**: 9 behavioural analytics modules covering academic risk tiers (Low, Medium, High), residency, scholarship allocations, LMS logins, library visits, video engagement minutes, and study hour bands.
+- **Practical 15 (Historical Trends & Forecasting)**: 9 longitudinal trend visualizations including chronological pass rates, enrollment shifts, attendance patterns, and statistical enrollment forecasts with documented confidence boundaries.
+- **Storytelling Portal**: 8 guided executive presentation stages with progressive loading, presentation "Projector Mode", and keyboard navigation.
+- **Data Quality Assurance**: Real-time schema validation, referential integrity auditing, missing field detection, and historical anomaly tracking (29 credit anomalies preserved transparently).
+- **Live Data Simulation**: Administrative mutation engine with bounded adjustments and safe baseline reset.
+- **Export Centre**: High-fidelity export generation for PDF, PNG, XLSX, and multi-sheet CSV (ZIP) archives.
+- **About the Project**: Full capstone documentation portal detailing problem statement, technology stack, data persistence architecture, and developer credits.
 
 ## 3. Technology Stack
 - **Frontend**: React 18, Vite, React Router, Recharts, Lucide-React.
-- **Backend**: Python, FastAPI, Pandas, Uvicorn, OpenPyXL.
-- **Data Persistence**: In-memory `DataCache` layered over `.xlsx` files.
+- **Backend**: Python 3.11+, FastAPI, Pandas, Uvicorn, OpenPyXL.
+- **Persistence Model**: Dual-dataset architecture with authoritative immutable original baseline (`CampusPulse_Academic_Dataset_Original.xlsx`) and an isolated, mutable working dataset (`CampusPulse_Live_Data.xlsx`).
 
 ## 4. Project Structure
 The web application is completely isolated from the original desktop environment.
@@ -78,6 +86,23 @@ The **Original Dataset** (`CampusPulse_Academic_Dataset_Original.xlsx`) is stric
 ## 13. Testing
 Execute `pytest tests/` within the `backend/` directory for full structural QA, and `npm run build` in the `frontend/` directory to certify production bundles.
 
-## 14. Known Limitations
-- *Browser Automation*: Playwright drivers encounter an Azure CDN 404 in certain automated environments, meaning programmatic PNG/PDF integration tests must be executed manually.
-- *Simulation Boundaries*: The live simulation mutates existing rows (shifting grades and attendance) rather than continuously inflating row counts to prevent unbounded memory growth during long presentations.
+## 14. Cloud Deployment Architecture
+### A. Render (Unified Web Service or Dedicated Backend)
+- **Service Name:** `campuspulse-web`
+- **Build Command:** `./build.sh` (builds frontend with `npm run build` and installs backend dependencies)
+- **Start Command:** `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+- **Persistent Storage:** Attach a 1 GB persistent disk mounted at `/var/data` with environment variable `PERSISTENT_DATA_DIR=/var/data` (optional on paid tier; falls back gracefully to local storage).
+- **CORS Configuration:** `CORS_ORIGINS=https://campuspulse.vercel.app,http://localhost:5173`
+
+### B. Vercel (Independent React Frontend)
+- **Framework Preset:** Vite
+- **Root Directory:** `CampusPulse_Web/frontend`
+- **Build Command:** `npm run build`
+- **Output Directory:** `dist`
+- **Environment Variable:** `VITE_API_BASE_URL=https://campuspulse-web.onrender.com/api`
+- **Routing:** Handled automatically via `frontend/vercel.json` SPA rewrite rules.
+
+## 15. Known Limitations
+- *Free-Tier Cold Starts*: Render free instances spin down after 15 minutes of inactivity; initial requests take 30–50s while waking.
+- *Data Anomalies*: 29 records in the original workbook have `credits_earned > credits_attempted`; these are preserved as genuine historical anomalies and flagged in the Data Quality module.
+

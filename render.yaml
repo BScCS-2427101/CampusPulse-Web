@@ -7,3 +7,7 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
+      - key: CORS_ORIGINS
+        value: "https://campuspulse.vercel.app,http://localhost:5173,http://localhost:3000"
+
+

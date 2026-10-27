@@ -9,7 +9,7 @@ import Live from './pages/Live';
 import DataQuality from './pages/DataQuality';
 import Storytelling from './pages/Storytelling';
 import Exports from './pages/Exports';
-import PlaceholderPage from './pages/PlaceholderPage';
+import About from './pages/About';
 
 function App() {
   const [globalCacheTimestamp, setGlobalCacheTimestamp] = useState(null);
@@ -24,10 +24,23 @@ function App() {
           <Route path="practical14" element={<Practical14 />} />
           <Route path="practical15" element={<Practical15 />} />
           <Route path="storytelling" element={<Storytelling />} />
+          
+          {/* Live simulation with alias */}
           <Route path="live" element={<Live />} />
+          <Route path="live-simulation" element={<Live />} />
+          
+          {/* Data quality */}
           <Route path="data-quality" element={<DataQuality />} />
+          
+          {/* Export Centre with alias */}
           <Route path="exports" element={<Exports />} />
-          <Route path="about" element={<PlaceholderPage title="About Project" />} />
+          <Route path="export-center" element={<Exports />} />
+          
+          {/* About Page */}
+          <Route path="about" element={<About />} />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

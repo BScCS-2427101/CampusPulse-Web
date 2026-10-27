@@ -41,7 +41,9 @@ const Exports = () => {
     setSuccessMsg(null);
     
     const ts = getTimestampStr();
-    const url = `/api/exports/${type}?format=${format}&_t=${globalCacheTimestamp || Date.now()}`;
+    const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+    const baseUrl = rawBaseUrl.replace(/\/+$/, '');
+    const url = `${baseUrl}/exports/${type}?format=${format}&_t=${globalCacheTimestamp || Date.now()}`;
     
     const a = document.createElement('a');
     a.href = url;

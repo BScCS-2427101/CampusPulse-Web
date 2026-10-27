@@ -16,6 +16,23 @@ cache = DataCache()
 def health_check():
     return {"status": "ok", "message": "CampusPulse Backend is running"}
 
+@router.get("/diagnostics")
+def system_diagnostics():
+    """Returns safe diagnostic information on dataset location, persistence mode, and record counts."""
+    loader = DataLoader()
+    diag = loader.get_diagnostics()
+    data = cache.get_data()
+    raw = data.get("raw", {})
+    return {
+        "status": "healthy",
+        "storage_mode": diag["storage_mode"],
+        "authoritative_baseline_exists": diag["original_exists"],
+        "live_working_dataset_exists": diag["live_exists"],
+        "sheets": list(raw.keys()),
+        "record_counts": {sheet: len(df) for sheet, df in raw.items()},
+        "last_updated": data.get("last_updated")
+    }
+
 @router.get("/dataset/summary")
 def get_dataset_summary():
     try:
@@ -40,7 +57,7 @@ def get_dashboard_data():
         
         # Calculate KPIs
         enrollments = raw['Enrollments']
-        pass_count = (enrollments['result_status'] == 'Pass').sum()
+        pass_count = (enrollments['result_status'].astype(str).str.strip().str.lower().isin(['passed', 'pass'])).sum()
         pass_pct = (pass_count / len(enrollments)) * 100 if len(enrollments) > 0 else 0
         
         risk_perf = analytical.get('student_risk_analysis')
@@ -150,7 +167,7 @@ def get_practical13_data(
             # 2. Pass Percentage by Course
             if 'course_name' in df.columns:
                 df_temp = df.copy()
-                df_temp['is_pass'] = (df_temp['result_status'] == 'Pass').astype(int)
+                df_temp['is_pass'] = df_temp['result_status'].astype(str).str.strip().str.lower().isin(['passed', 'pass']).astype(int)
                 course_pass = df_temp.groupby('course_name').agg(total=('enrollment_id', 'count'), passes=('is_pass', 'sum')).reset_index()
                 course_pass['pass_percentage'] = (course_pass['passes'] / course_pass['total']) * 100
                 charts['pass_pct_by_course'] = course_pass[['course_name', 'pass_percentage']]
@@ -403,7 +420,7 @@ def get_practical15_data(
             # 3. Pass Percentage Trend
             if unique_periods > 1 and 'result_status' in trend_df.columns:
                 trend_df_pass = trend_df.copy()
-                trend_df_pass['is_pass'] = (trend_df_pass['result_status'] == 'Pass').astype(int)
+                trend_df_pass['is_pass'] = trend_df_pass['result_status'].astype(str).str.strip().str.lower().isin(['passed', 'pass']).astype(int)
                 pass_trend = (trend_df_pass.groupby('Year-Month')['is_pass'].mean() * 100).reset_index()
                 pass_trend.columns = ['period', 'pass_percent']
                 charts['pass_percentage_trend'] = pass_trend

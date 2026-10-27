@@ -1,4 +1,5 @@
-const API_BASE_URL = '/api';
+const rawBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api';
+const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 
 export const getHealth = async () => {
     try {
@@ -147,3 +148,10 @@ export const getDataQuality = async () => {
     if (!response.ok) throw new Error('Network response was not ok');
     return await response.json();
 };
+
+export const getDiagnostics = async () => {
+    const response = await fetch(`${API_BASE_URL}/diagnostics`);
+    if (!response.ok) throw new Error('Network response was not ok');
+    return await response.json();
+};
+

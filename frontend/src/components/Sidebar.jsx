@@ -42,8 +42,20 @@ const Sidebar = () => {
           </NavLink>
         ))}
       </nav>
+      <div style={{ 
+        marginTop: 'auto', 
+        padding: '16px 20px', 
+        borderTop: '1px solid var(--border-color)', 
+        fontSize: '0.8rem', 
+        color: 'var(--text-muted)',
+        backgroundColor: 'rgba(0, 0, 0, 0.02)'
+      }}>
+        <div style={{ fontWeight: '600', color: 'var(--text-main)', marginBottom: '2px' }}>Rajdeep M Parab</div>
+        <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>Roll No: T101 • Academic Capstone</div>
+      </div>
     </aside>
   );
 };
+
 
 export default Sidebar;

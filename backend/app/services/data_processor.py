@@ -73,7 +73,7 @@ class DataProcessor:
         
         self._log(f"Learning Activity source rows: {len(activity)}")
         
-        # Aggregate at student_id + course_id level
+        # Aggregate at student_id level so student learning metrics connect to student enrollments
         agg_funcs = {
             'study_hours': 'sum',
             'lms_logins': 'sum',
@@ -84,14 +84,19 @@ class DataProcessor:
             'quiz_attempts': 'sum',
             'peer_discussion_posts': 'sum',
             'resource_downloads': 'sum',
-            'engagement_score': 'mean' # mean score makes more sense than sum
+            'engagement_score': 'mean'
         }
         
         # Ensure only existing columns are aggregated
         agg_funcs = {k: v for k, v in agg_funcs.items() if k in activity.columns}
         
-        activity_agg = activity.groupby(['student_id', 'course_id'], as_index=False).agg(agg_funcs)
-        self._log(f"Learning Activity aggregated rows: {len(activity_agg)}")
+        activity_agg = activity.groupby('student_id', as_index=False).agg(agg_funcs)
+        if 'engagement_score' in activity_agg.columns:
+            activity_agg['engagement_score'] = activity_agg['engagement_score'].round(1)
+        if 'study_hours' in activity_agg.columns:
+            activity_agg['study_hours'] = activity_agg['study_hours'].round(1)
+            
+        self._log(f"Learning Activity aggregated student rows: {len(activity_agg)}")
         
         self.analytical_data['learning_activity_agg'] = activity_agg
         
@@ -111,10 +116,8 @@ class DataProcessor:
         activity_agg = self.analytical_data['learning_activity_agg']
         
         # 1. student_course_performance (Student + Course + Enrollment + Activity)
-        # First, enrollments + activity
-        # Enrollments is unique per student_id + course_id based on typical dataset, 
-        # let's merge enrollments with aggregated activity to avoid multiplication.
-        enc_act = pd.merge(enrollments, activity_agg, on=['student_id', 'course_id'], how='left')
+        # Merge enrollments with student-level learning activity
+        enc_act = pd.merge(enrollments, activity_agg, on='student_id', how='left')
         self._log(f"Merged Enrollments + Activity rows: {len(enc_act)}")
         
         # Add course info
@@ -125,18 +128,13 @@ class DataProcessor:
         enc_act_crs_prg = pd.merge(enc_act_crs, programs, on='program_id', how='left')
         self._log(f"Merged with Programs rows: {len(enc_act_crs_prg)}")
         
-        # Add student info
-        full_performance = pd.merge(enc_act_crs_prg, students, on=['student_id', 'program_id'], how='left')
-        
-        # Some students might be enrolled in courses outside their primary program, 
-        # so merge on student_id only if program_id merge loses rows, but typical academic datasets 
-        # have primary program_id in student table.
-        if len(full_performance) < len(enc_act_crs_prg):
-             self._log("Notice: Merging on student_id AND program_id lost rows. Merging on student_id only.")
-             # Drop program_id from students before merge to avoid conflict, or use suffixes
-             students_subset = students.drop(columns=['program_id'])
-             full_performance = pd.merge(enc_act_crs_prg, students_subset, on='student_id', how='left')
-             
+        # Add student info - merge on student_id only to attach student attributes
+        # Rename students['program_id'] to 'student_program_id' so it does not collide with course's program_id
+        students_copy = students.copy()
+        if 'program_id' in students_copy.columns:
+            students_copy = students_copy.rename(columns={'program_id': 'student_program_id'})
+            
+        full_performance = pd.merge(enc_act_crs_prg, students_copy, on='student_id', how='left')
         self._log(f"Merged with Students rows: {len(full_performance)}")
         self.analytical_data['student_course_performance'] = full_performance
         
@@ -144,8 +142,8 @@ class DataProcessor:
         # Average assessment score, pass percentage, attendance, credits, enrollment count by program
         df = full_performance
         
-        # Calculate pass (using actual result_status values, assuming 'Pass')
-        df['is_pass'] = (df['result_status'] == 'Pass').astype(int)
+        # Calculate pass (dataset result_status values: 'Passed', 'Failed', 'Supplementary')
+        df['is_pass'] = df['result_status'].astype(str).str.strip().str.lower().isin(['passed', 'pass']).astype(int)
         
         prog_perf = df.groupby('program_id').agg(
             enrollment_count=('enrollment_id', 'count'),
